@@ -1,0 +1,495 @@
+{% extends 'base.html' %}
+
+{% block title %}Customers - SalesERP{% endblock %}
+{% block page_title %}Customer Registry{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+    <div class="erp-card-header d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+        <!-- Search and Filter Bar -->
+        <div class="d-flex align-items-center w-100 style-search-container" style="max-width: 450px;">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control border-start-0" id="search-input" placeholder="Search customers name, company, email...">
+                <button class="btn btn-erp-primary" type="button" id="search-btn">Search</button>
+            </div>
+        </div>
+        
+        <!-- Add Customer Button -->
+        <button class="btn btn-erp-primary w-100 w-sm-auto" type="button" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+            <i class="bi bi-person-plus-fill me-2"></i>New Customer
+        </button>
+    </div>
+    
+    <div class="erp-card-body p-0">
+        <div class="table-responsive">
+            <table class="table erp-table align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>GST Number</th>
+                        <th>Location</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customers-table-body">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted p-4">Loading customer registry...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination Footer -->
+        <div class="p-3 border-top d-flex justify-content-between align-items-center">
+            <div class="pagination-info" id="pagination-info">Showing 0 of 0 records</div>
+            <div class="erp-pagination">
+                <button class="pagination-btn" id="prev-page-btn" disabled><i class="bi bi-chevron-left"></i> Previous</button>
+                <button class="pagination-btn" id="next-page-btn" disabled>Next <i class="bi bi-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================
+     ADD CUSTOMER MODAL
+     ================================================== -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCustomerModalLabel"><i class="bi bi-person-plus-fill me-2"></i>Add New Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="add-customer-form">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="add-name" class="form-label">Customer Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="add-name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="add-company" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" id="add-company">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="add-email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="add-email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="add-phone" class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="add-phone" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="add-gst" class="form-label">GSTIN / Tax ID</label>
+                            <input type="text" class="form-control" id="add-gst" placeholder="e.g. 29AAAAA0000A1Z5">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="add-address" class="form-label">Address Line</label>
+                            <input type="text" class="form-control" id="add-address">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="add-city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="add-city">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="add-state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="add-state">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="add-postal" class="form-label">Postal / ZIP Code</label>
+                            <input type="text" class="form-control" id="add-postal">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="add-country" class="form-label">Country</label>
+                            <input type="text" class="form-control" id="add-country" value="United States">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-erp-primary">Save Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================
+     EDIT CUSTOMER MODAL
+     ================================================== -->
+<div class="modal fade" id="editCustomerModal" tabindex="-1" aria-labelledby="editCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCustomerModalLabel"><i class="bi bi-pencil-square me-2"></i>Edit Customer Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="edit-customer-form">
+                <input type="hidden" id="edit-id">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="edit-name" class="form-label">Customer Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit-name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit-company" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" id="edit-company">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit-email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="edit-email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit-phone" class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit-phone" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit-gst" class="form-label">GSTIN / Tax ID</label>
+                            <input type="text" class="form-control" id="edit-gst">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit-address" class="form-label">Address Line</label>
+                            <input type="text" class="form-control" id="edit-address">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit-city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="edit-city">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit-state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="edit-state">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit-postal" class="form-label">Postal / ZIP Code</label>
+                            <input type="text" class="form-control" id="edit-postal">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="edit-country" class="form-label">Country</label>
+                            <input type="text" class="form-control" id="edit-country">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-erp-primary">Apply Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================
+     CUSTOMER PROFILE LOOKUP MODAL
+     ================================================== -->
+<div class="modal fade" id="profileCustomerModal" tabindex="-1" aria-labelledby="profileCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="profileCustomerModalLabel"><i class="bi bi-person-lines-fill me-2"></i>Customer Profile Summary</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="bi bi-person-circle fs-1 text-primary"></i>
+                    <h4 class="mt-2 mb-0" id="prof-name">Customer Name</h4>
+                    <p class="text-muted mb-0" id="prof-company">Company</p>
+                </div>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">Email</span>
+                        <span class="fw-semibold" id="prof-email">email@domain.com</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">Mobile Phone</span>
+                        <span class="fw-semibold" id="prof-phone">0000000000</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">GST Number</span>
+                        <span class="fw-semibold" id="prof-gst">N/A</span>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="text-muted mb-1">Billing / Shipping Address</div>
+                        <div class="fw-semibold" id="prof-address">Address Detail</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-erp-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('nav-customers').classList.add('active');
+    
+    let currentPage = 1;
+    let totalPages = 1;
+    const perPage = 10;
+    
+    // Core Load Data Trigger
+    async function loadCustomers() {
+        const token = localStorage.getItem('access_token');
+        const searchVal = document.getElementById('search-input').value.trim();
+        
+        try {
+            const url = `/api/customers?page=${currentPage}&per_page=${perPage}&search=${encodeURIComponent(searchVal)}`;
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                renderCustomers(data.customers);
+                
+                // Track page states
+                currentPage = data.page;
+                totalPages = data.pages;
+                
+                document.getElementById('pagination-info').textContent = `Showing page ${currentPage} of ${totalPages} (Total ${data.total} records)`;
+                document.getElementById('prev-page-btn').disabled = !data.has_prev;
+                document.getElementById('next-page-btn').disabled = !data.has_next;
+            }
+        } catch (err) {
+            console.error("Failed loading customers list", err);
+        }
+    }
+    
+    function renderCustomers(customers) {
+        const tbody = document.getElementById('customers-table-body');
+        if (customers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4">No customer records matching this criteria.</td></tr>';
+            return;
+        }
+        
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const isPrivileged = ['Admin', 'Sales Manager'].includes(currentUser.role);
+        
+        tbody.innerHTML = customers.map(c => `
+            <tr>
+                <td>
+                    <span class="fw-bold">${escapeHtml(c.name)}</span>
+                </td>
+                <td>${escapeHtml(c.company || 'N/A')}</td>
+                <td>${escapeHtml(c.email)}</td>
+                <td>${escapeHtml(c.phone)}</td>
+                <td><code class="text-dark">${escapeHtml(c.gst_number || 'N/A')}</code></td>
+                <td>${escapeHtml(c.city || '')}${c.state ? ', ' + escapeHtml(c.state) : ''}</td>
+                <td class="text-end">
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="viewCustomer(${c.id})" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="editCustomer(${c.id})" title="Edit Details">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        ${isPrivileged ? `
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomer(${c.id})" title="Delete Record">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // Search Actions
+    document.getElementById('search-btn').addEventListener('click', () => {
+        currentPage = 1;
+        loadCustomers();
+    });
+    
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            currentPage = 1;
+            loadCustomers();
+        }
+    });
+    
+    // Pagination Controls
+    document.getElementById('prev-page-btn').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            loadCustomers();
+        }
+    });
+    document.getElementById('next-page-btn').addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            loadCustomers();
+        }
+    });
+    
+    // Add Customer Form Submit
+    document.getElementById('add-customer-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('access_token');
+        
+        const name = document.getElementById('add-name').value;
+        const company = document.getElementById('add-company').value;
+        const email = document.getElementById('add-email').value;
+        const phone = document.getElementById('add-phone').value;
+        const gst_number = document.getElementById('add-gst').value;
+        const address = document.getElementById('add-address').value;
+        const city = document.getElementById('add-city').value;
+        const state = document.getElementById('add-state').value;
+        const postal_code = document.getElementById('add-postal').value;
+        const country = document.getElementById('add-country').value;
+        
+        try {
+            const response = await fetch('/api/customers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name, company, email, phone, gst_number, address, city, state, postal_code, country })
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                // Close Modal
+                const modalEl = document.getElementById('addCustomerModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                document.getElementById('add-customer-form').reset();
+                loadCustomers();
+            } else {
+                alert(data.message || 'Error occurred while saving customer');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    });
+    
+    // Load customer detail for editing
+    async function editCustomer(id) {
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`/api/customers/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const c = await response.json();
+                document.getElementById('edit-id').value = c.id;
+                document.getElementById('edit-name').value = c.name;
+                document.getElementById('edit-company').value = c.company || '';
+                document.getElementById('edit-email').value = c.email;
+                document.getElementById('edit-phone').value = c.phone;
+                document.getElementById('edit-gst').value = c.gst_number || '';
+                document.getElementById('edit-address').value = c.address || '';
+                document.getElementById('edit-city').value = c.city || '';
+                document.getElementById('edit-state').value = c.state || '';
+                document.getElementById('edit-postal').value = c.postal_code || '';
+                document.getElementById('edit-country').value = c.country || '';
+                
+                const modal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
+                modal.show();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    // Save edit customer form submit
+    document.getElementById('edit-customer-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('access_token');
+        const id = document.getElementById('edit-id').value;
+        
+        const name = document.getElementById('edit-name').value;
+        const company = document.getElementById('edit-company').value;
+        const email = document.getElementById('edit-email').value;
+        const phone = document.getElementById('edit-phone').value;
+        const gst_number = document.getElementById('edit-gst').value;
+        const address = document.getElementById('edit-address').value;
+        const city = document.getElementById('edit-city').value;
+        const state = document.getElementById('edit-state').value;
+        const postal_code = document.getElementById('edit-postal').value;
+        const country = document.getElementById('edit-country').value;
+        
+        try {
+            const response = await fetch(`/api/customers/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name, company, email, phone, gst_number, address, city, state, postal_code, country })
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                const modalEl = document.getElementById('editCustomerModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                loadCustomers();
+            } else {
+                alert(data.message || 'Failed updating customer');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    });
+    
+    // View customer profile summary
+    async function viewCustomer(id) {
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`/api/customers/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const c = await response.json();
+                document.getElementById('prof-name').textContent = c.name;
+                document.getElementById('prof-company').textContent = c.company || 'Individual Profile';
+                document.getElementById('prof-email').textContent = c.email;
+                document.getElementById('prof-phone').textContent = c.phone;
+                document.getElementById('prof-gst').textContent = c.gst_number || 'N/A';
+                
+                const addressStr = `
+                    ${escapeHtml(c.address || 'No address specified')}<br/>
+                    ${escapeHtml(c.city || '')}${c.state ? ', ' + escapeHtml(c.state) : ''}<br/>
+                    ${escapeHtml(c.country || '')} ${escapeHtml(c.postal_code || '')}
+                `;
+                document.getElementById('prof-address').innerHTML = addressStr;
+                
+                const modal = new bootstrap.Modal(document.getElementById('profileCustomerModal'));
+                modal.show();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    // Delete Customer
+    async function deleteCustomer(id) {
+        if (!confirm("Are you sure you want to delete this customer? This will also remove their quotation and sales order histories.")) return;
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`/api/customers/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                loadCustomers();
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Error deleting customer');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    // Start Load
+    loadCustomers();
+</script>
+{% endblock %}

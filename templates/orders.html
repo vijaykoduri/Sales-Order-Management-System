@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales Orders - SalesERP{% endblock %}
+{% block page_title %}Sales Orders Registry{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+    <div class="erp-card-header d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+        <!-- Search and Filter Panel -->
+        <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100" style="max-width: 500px;">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control border-start-0" id="search-input" placeholder="Search order #, customer name...">
+            </div>
+            <select class="form-select w-100 w-sm-auto" id="status-filter" style="min-width: 140px;">
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Packed">Packed</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+            </select>
+            <button class="btn btn-erp-primary" type="button" id="filter-btn">Apply</button>
+        </div>
+    </div>
+    
+    <div class="erp-card-body p-0">
+        <div class="table-responsive">
+            <table class="table erp-table align-middle">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Quote Reference</th>
+                        <th>Subtotal</th>
+                        <th>Tax & Discount</th>
+                        <th>Grand Total</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-table-body">
+                    <tr>
+                        <td colspan="9" class="text-center text-muted p-4">Loading sales orders registry...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================
+     VIEW ORDER ITEMS MODAL
+     ================================================== -->
+<div class="modal fade" id="viewOrderModal" tabindex="-1" aria-labelledby="viewOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary-subtle text-secondary-emphasis">
+                <h5 class="modal-title" id="viewOrderModalLabel"><i class="bi bi-cart-fill me-2"></i>Sales Order Items</h5>
+                <button type="button" class="btn-close" style="filter:none;" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <strong>Order Number:</strong> <span id="view-o-number" class="fw-bold">SO-00000</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Customer Name:</strong> <span id="view-o-customer">Customer</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Shipping Charges:</strong> <span id="view-o-shipping">$0.00</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Order Status:</strong> <span id="view-o-status" class="badge bg-secondary">Pending</span>
+                    </div>
+                </div>
+                
+                <h6>Ordered Items:</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-sm align-middle text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Code</th>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>Discount</th>
+                                <th>GST Tax</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="view-items-body">
+                            <!-- Dynamic items -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="d-flex flex-column align-items-end pe-3">
+                    <div>Subtotal: <strong id="view-o-subtotal">$0.00</strong></div>
+                    <div>Discount Amt: <strong class="text-danger" id="view-o-discount-amt">-$0.00</strong></div>
+                    <div>GST Amt: <strong id="view-o-gst-amt">+$0.00</strong></div>
+                    <div>Shipping Charges: <strong id="view-o-shipping-amt">+$0.00</strong></div>
+                    <div class="fs-5 mt-2 border-top pt-2">Grand Total: <strong class="text-primary" id="view-o-grand-total">$0.00</strong></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-erp-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('nav-orders').classList.add('active');
+    
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isPrivileged = ['Admin', 'Sales Manager'].includes(currentUser.role);
+    
+    async function loadOrders() {
+        const token = localStorage.getItem('access_token');
+        const searchVal = document.getElementById('search-input').value.trim();
+        const statusVal = document.getElementById('status-filter').value;
+        
+        try {
+            let url = `/api/orders/orders?search=${encodeURIComponent(searchVal)}`;
+            if (statusVal) {
+                url += `&status=${statusVal}`;
+            }
+            
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                renderOrders(data);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    function renderOrders(orders) {
+        const tbody = document.getElementById('orders-table-body');
+        if (orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted p-4">No sales orders found.</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = orders.map(o => `
+            <tr>
+                <td>
+                    <span class="fw-bold">${o.order_number}</span>
+                </td>
+                <td>
+                    <div class="fw-semibold">${escapeHtml(o.customer_name)}</div>
+                    <small class="text-muted">${escapeHtml(o.customer_company || 'N/A')}</small>
+                </td>
+                <td><code class="text-dark">${o.quotation_number || 'Direct Order'}</code></td>
+                <td>$${o.subtotal.toFixed(2)}</td>
+                <td>
+                    <div class="text-danger">-$${o.discount_amount.toFixed(2)}</div>
+                    <div class="text-success">+$${o.gst_amount.toFixed(2)}</div>
+                </td>
+                <td class="fw-bold text-primary">$${o.order_total.toFixed(2)}</td>
+                <td>
+                    <span class="status-pill status-${o.status.toLowerCase()}">${o.status}</span>
+                </td>
+                <td class="text-muted">${new Date(o.created_at).toLocaleDateString([], {month: 'short', day: 'numeric'})}</td>
+                <td class="text-end">
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="viewOrder(${o.id})" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="printOrder(${o.id})" title="Print PDF">
+                            <i class="bi bi-file-pdf"></i>
+                        </button>
+                        
+                        <!-- Status Stepper progression -->
+                        ${getNextStatusButton(o)}
+                        
+                        <!-- Cancel Action -->
+                        ${['Pending', 'Confirmed', 'Packed', 'Shipped'].includes(o.status) && isPrivileged ? `
+                            <button class="btn btn-sm btn-outline-danger" onclick="updateStatus(${o.id}, 'Cancelled')" title="Cancel Order">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    function getNextStatusButton(order) {
+        if (!isPrivileged) return '';
+        
+        switch (order.status) {
+            case 'Pending':
+                return `<button class="btn btn-sm btn-success" onclick="updateStatus(${order.id}, 'Confirmed')" title="Confirm Sales Order">Confirm</button>`;
+            case 'Confirmed':
+                return `<button class="btn btn-sm btn-warning text-dark" onclick="updateStatus(${order.id}, 'Packed')" title="Mark as Packed">Pack</button>`;
+            case 'Packed':
+                return `<button class="btn btn-sm btn-info text-white" onclick="updateStatus(${order.id}, 'Shipped')" title="Ship Order">Ship</button>`;
+            case 'Shipped':
+                return `<button class="btn btn-sm btn-primary" onclick="updateStatus(${order.id}, 'Delivered')" title="Mark as Delivered">Deliver</button>`;
+            default:
+                return ''; // Cancelled or Delivered has no forward step
+        }
+    }
+    
+    // Search Filters
+    document.getElementById('filter-btn').addEventListener('click', loadOrders);
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') loadOrders();
+    });
+    
+    // View detail dialog
+    async function viewOrder(id) {
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`/api/orders/orders/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const o = await response.json();
+                
+                document.getElementById('view-o-number').textContent = o.order_number;
+                document.getElementById('view-o-customer').textContent = o.customer_name;
+                document.getElementById('view-o-shipping').textContent = `$${o.shipping_charges.toFixed(2)}`;
+                document.getElementById('view-o-status').textContent = o.status;
+                
+                // Adjust status badge color
+                const statusBadge = document.getElementById('view-o-status');
+                statusBadge.className = 'badge';
+                statusBadge.classList.add(`status-${o.status.toLowerCase()}`);
+                
+                document.getElementById('view-o-subtotal').textContent = `$${o.subtotal.toFixed(2)}`;
+                document.getElementById('view-o-discount-amt').textContent = `-$${o.discount_amount.toFixed(2)}`;
+                document.getElementById('view-o-gst-amt').textContent = `+$${o.gst_amount.toFixed(2)}`;
+                document.getElementById('view-o-shipping-amt').textContent = `+$${o.shipping_charges.toFixed(2)}`;
+                document.getElementById('view-o-grand-total').textContent = `$${o.order_total.toFixed(2)}`;
+                
+                const list = document.getElementById('view-items-body');
+                list.innerHTML = o.items.map(item => `
+                    <tr>
+                        <td><strong>${escapeHtml(item.product_name)}</strong></td>
+                        <td><code>${escapeHtml(item.product_code)}</code></td>
+                        <td>${item.quantity}</td>
+                        <td>$${item.price.toFixed(2)}</td>
+                        <td class="text-danger">-$${item.discount.toFixed(2)}</td>
+                        <td>+$${item.gst.toFixed(2)}</td>
+                        <td class="fw-semibold">$${item.total.toFixed(2)}</td>
+                    </tr>
+                `).join('');
+                
+                const modal = new bootstrap.Modal(document.getElementById('viewOrderModal'));
+                modal.show();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    // Update Order Status API call
+    async function updateStatus(id, newStatus) {
+        if (newStatus === 'Cancelled' && !confirm("Are you sure you want to cancel this order? This will restore inventory stock counts.")) return;
+        
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`/api/orders/orders/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            
+            if (response.ok) {
+                loadOrders();
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Status transition failed');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    function printOrder(id) {
+        const token = localStorage.getItem('access_token');
+        window.open(`/api/orders/orders/${id}/pdf?token=${token}`, '_blank');
+    }
+    
+    // Start Load
+    loadOrders();
+</script>
+{% endblock %}

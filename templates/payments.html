@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Payments - SalesERP{% endblock %}
+{% block page_title %}Payments Ledger{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+    <div class="erp-card-header">
+        <h5 class="erp-card-title"><i class="bi bi-cash-stack me-2 text-primary"></i>Recorded Payment Transactions</h5>
+    </div>
+    
+    <div class="erp-card-body p-0">
+        <div class="table-responsive">
+            <table class="table erp-table align-middle">
+                <thead>
+                    <tr>
+                        <th>Receipt #</th>
+                        <th>Invoice Ref</th>
+                        <th>Customer</th>
+                        <th>Amount Paid</th>
+                        <th>Payment Method</th>
+                        <th>Payment Date</th>
+                    </tr>
+                </thead>
+                <tbody id="payments-table-body">
+                    <tr>
+                        <td colspan="6" class="text-center text-muted p-4">Loading payment logs...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('nav-payments').classList.add('active');
+    
+    async function loadPayments() {
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch('/api/payments', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                renderPayments(data);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    function renderPayments(payments) {
+        const tbody = document.getElementById('payments-table-body');
+        if (payments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted p-4">No payment transactions recorded yet.</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = payments.map(p => `
+            <tr>
+                <td class="fw-bold">${p.payment_number}</td>
+                <td>
+                    <span class="fw-semibold text-secondary">${p.invoice_number}</span>
+                </td>
+                <td>
+                    <span class="fw-semibold text-dark">${escapeHtml(p.customer_name)}</span>
+                </td>
+                <td class="fw-bold text-success">$${p.amount.toFixed(2)}</td>
+                <td>
+                    <span class="badge bg-light text-dark border px-3 py-2"><i class="bi bi-credit-card-2-back me-1"></i>${p.payment_method}</span>
+                </td>
+                <td class="text-muted">${new Date(p.payment_date).toLocaleString([], {month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</td>
+            </tr>
+        `).join('');
+    }
+    
+    loadPayments();
+</script>
+{% endblock %}

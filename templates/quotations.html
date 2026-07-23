@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+
+{% block title %}Quotations - SalesERP{% endblock %}
+{% block page_title %}Quotations Workflow{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+    <div class="erp-card-header d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+        <!-- Search and Filter Panel -->
+        <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100" style="max-width: 500px;">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control border-start-0" id="search-input" placeholder="Search quotation #, customer...">
+            </div>
+            <select class="form-select w-100 w-sm-auto" id="status-filter" style="min-width: 140px;">
+                <option value="">All Statuses</option>
+                <option value="Draft">Draft</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Converted">Converted</option>
+            </select>
+            <button class="btn btn-erp-primary" type="button" id="filter-btn">Apply</button>
+        </div>
+        
+        <!-- Create Quotation Button -->
+        <button class="btn btn-erp-primary w-100 w-sm-auto" type="button" data-bs-toggle="modal" data-bs-target="#addQuotationModal" id="new-quotation-modal-btn">
+            <i class="bi bi-file-earmark-plus-fill me-2"></i>New Quotation
+        </button>
+    </div>
+    
+    <div class="erp-card-body p-0">
+        <div class="table-responsive">
+            <table class="table erp-table align-middle">
+                <thead>
+                    <tr>
+                        <th>Quotation #</th>
+                        <th>Customer</th>
+                        <th>Subtotal</th>
+                        <th>Discount Rate</th>
+                        <th>Tax (GST)</th>
+                        <th>Grand Total</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="quotations-table-body">
+                    <tr>
+                        <td colspan="9" class="text-center text-muted p-4">Loading quotations ledger...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================
+     ADD QUOTATION MODAL
+     ================================================== -->
+<div class="modal fade" id="addQuotationModal" tabindex="-1" aria-labelledby="addQuotationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addQuotationModalLabel"><i class="bi bi-file-earmark-plus-fill me-2"></i>Generate Quotation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="add-quotation-form">
+                <div class="modal-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="add-customer" class="form-label">Customer Name <span class="text-danger">*</span></label>
+                            <select class="form-select form-control" id="add-customer" required>
+                                <option value="">Select Customer</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="add-discount" class="form-label">Discount Rate (%)</label>
+                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="add-discount" value="0.0">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="add-gst" class="form-label">GST Tax Rate (%)</label>
+                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="add-gst" value="18.0">
+                        </div>
+                    </div>
+                    
+                    <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-list-task me-2 text-teal"></i>Line Items</h6>
+                    <div id="quotation-lines-container">
+                        <!-- Dynamic items will append here -->
+                    </div>
+                    
+                    <button type="button" class="btn btn-erp-outline btn-sm mt-2" id="add-line-btn">
+                        <i class="bi bi-plus-lg me-1"></i>Add Product Line
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-erp-primary">Save as Draft</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================
+     VIEW QUOTATION ITEMS MODAL
+     ================================================== -->
+<div class="modal fade" id="viewQuotationModal" tabindex="-1" aria-labelledby="viewQuotationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary-subtle text-secondary-emphasis">
+                <h5 class="modal-title" id="viewQuotationModalLabel"><i class="bi bi-file-earmark-text me-2"></i>Quotation Details</h5>
+                <button type="button" class="btn-close" style="filter:none;" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <strong>Quotation Number:</strong> <span id="view-q-number" class="fw-bold">QT-00000</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Customer Name:</strong> <span id="view-q-customer">Customer</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tax Rate (GST):</strong> <span id="view-q-gst-rate">0.0%</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Discount Rate:</strong> <span id="view-q-disc-rate">0.0%</span>
+                    </div>
+                </div>
+                
+                <h6>Itemized Summary:</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-sm align-middle text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Code</th>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>Discount</th>
+                                <th>GST Tax</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="view-items-body">
+                            <!-- Dynamic items -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="d-flex flex-column align-items-end pe-3">
+                    <div>Subtotal: <strong id="view-q-subtotal">$0.00</strong></div>
+                    <div>Discount Amt: <strong class="text-danger" id="view-q-discount-amt">-$0.00</strong></div>
+                    <div>GST Amt: <strong id="view-q-gst-amt">+$0.00</strong></div>
+                    <div class="fs-5 mt-2 border-top pt-2">Grand Total: <strong class="text-primary" id="view-q-grand-total">$0.00</strong></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-erp-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('nav-quotations').classList.add('active');
+    
+    let allProducts = [];
+    let allCustomers = [];
+    
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isPrivileged = ['Admin', 'Sales Manager'].includes(currentUser.role);
+    
+    // Core Load Trigger
+    async function loadQuotations() {
+        const token = localStorage.getItem('access_token');
+        const searchVal = document.getElementById('search-input').value.trim();
+        const statusVal = document.getElementById('status-filter').value;
+        
+        try {
+            let url = `/api/orders/quotations?search=${encodeURIComponent(searchVal)}`;
+            if (statusVal) {
+                url += `&status=${statusVal}`;
+            }
+            
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                renderQuotations(data);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    function renderQuotations(quotes) {
+        const tbody = document.getElementById('quotations-table-body');
+        if (quotes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted p-4">No quotations registry found.</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = quotes.map(q => `
+            <tr>
+                <td>
+                    <span class="fw-bold">${q.quotation_number}</span>
+                </td>
+                <td>
+                    <div class="fw-semibold">${escapeHtml(q.customer_name)}</div>
+                    <small class="text-muted">${escapeHtml(q.customer_company || 'N/A')}</small>
+                </td>
+                <td>$${q.subtotal.toFixed(2)}</td>
+                <td>${q.discount_rate.toFixed(1)}%</td>
+                <td>$${q.gst_amount.toFixed(2)}</td>
+                <td class="fw-bold text-primary">$${q.grand_total.toFixed(2)}</td>
+                <td>
+                    <span class="status-pill status-${q.status.toLowerCase()}">${q.status}</span>
+                </td>
+                <td class="text-muted">${new Date(q.created_at).toLocaleDateString([], {month: 'short', day: 'numeric'})}</td>
+                <td class="text-end">
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="viewQuotation(${q.id})" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="printQuotation(${q.id})" title="Download PDF">
+                            <i class="bi bi-file-pdf"></i>
+                        </button>
+                        ${q.status === 'Draft' && isPrivileged ? `
+                            <button class="btn btn-sm btn-outline-success" onclick="approveQuotation(${q.id})" title="Approve">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="rejectQuotation(${q.id})" title="Reject">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        ` : ''}
+                        ${q.status === 'Approved' ? `
+                            <button class="btn btn-sm btn-erp-primary py-1 px-2" onclick="convertToOrder(${q.id})" title="Convert to Sales Order">
+                                Convert
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // Search / Filters
+    document.getElementById('filter-btn').addEventListener('click', loadQuotations);
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') loadQuotations();
+    });
+    
+    // Dynamic Row Editor
+    let rowIdCounter = 0;
+    
+    function addLineRow() {
+        const container = document.getElementById('quotation-lines-container');
+        const rowId = `line-row-${rowIdCounter++}`;
+        
+        const div = document.createElement('div');
+        div.className = 'row g-2 quotation-line mb-2';
+        div.id = rowId;
+        
+        const prodOptions = allProducts.map(p => `
+            <option value="${p.id}" data-price="${p.selling_price}">${escapeHtml(p.name)} ($${p.selling_price.toFixed(2)})</option>
+        `).join('');
+        
+        div.innerHTML = `
+            <div class="col-md-7">
+                <select class="form-select line-product-select" required>
+                    <option value="">Select Product Line</option>
+                    ${prodOptions}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="number" class="form-control line-qty-input" min="1" value="1" placeholder="Qty" required>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-danger w-100" onclick="removeLineRow('${rowId}')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+    
+    function removeLineRow(rowId) {
+        document.getElementById(rowId).remove();
+    }
+    
+    document.getElementById('add-line-btn').addEventListener('click', addLineRow);
+    
+    // Fetch products & customers on show modal
+    document.getElementById('new-quotation-modal-btn').addEventListener('click', async () => {
+        const token = localStorage.getItem('access_token');
+        try {
+            // Load products
+            const prodRes = await fetch('/api/products?per_page=100', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            // Load customers
+            const custRes = await fetch('/api/customers?per_page=100', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (prodRes.ok && custRes.ok) {
+                const prodData = await prodRes.json();
+                const custData = await custRes.json();
+                
+                allProducts = prodData.products;
+                allCustomers = custData.customers;
+                
+                // Populate customers
+                const custSelect = document.getElementById('add-customer');
+                custSelect.innerHTML = '<option value="">Select Customer</option>' + allCustomers.map(c => `
+                    <option value="${c.id}">${escapeHtml(c.name)} (${escapeHtml(c.company || 'N/A')})</option>
+                `).join('');
+                
+                // Clear lines & add first empty line
+                document.getElementById('quotation-lines-container').innerHTML = '';
+                addLineRow();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    });
+    
+    // Submit Quotation (Draft creation)
+    document.getElementById('add-quotation-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('access_token');
+        
+        const customer_id = parseInt(document.getElementById('add-customer').value);
+        const discount_rate = parseFloat(document.getElementById('add-discount').value);
+        const gst_rate = parseFloat(document.getElementById('add-gst').value);
+        
+        // Gather lines
+        const lines = [];
+        const rows = document.querySelectorAll('.quotation-line');
+        rows.forEach(row => {
+            const product_id = parseInt(row.querySelector('.line-product-select').value);
+            const quantity = parseInt(row.querySelector('.line-qty-input').value);
+            if (product_id && quantity) {
+                lines.push({ product_id, quantity });
+            }
+        });
+        
+        if (lines.length === 0) {
+            alert("At least one product line item must be configured.");
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/orders/quotations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ customer_id, discount_rate, gst_rate, items: lines })
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                const modalEl = document.getElementById('addQuotationModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                loadQuotations();
+            } else {
+                alert(data.message || 'Failed saving quotation details');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    });
+    
+    // View details dialog
+    async function viewQuotation(id) {
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`/api/orders/quotations/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const q = await response.json();
+                
+                document.getElementById('view-q-number').textContent = q.quotation_number;
+                document.getElementById('view-q-customer').textContent = q.customer_name;
+                document.getElementById('view-q-gst-rate').textContent = `${q.gst_rate.toFixed(1)}%`;
+                document.getElementById('view-q-disc-rate').textContent = `${q.discount_rate.toFixed(1)}%`;
+                
+                document.getElementById('view-q-subtotal').textContent = `$${q.subtotal.toFixed(2)}`;
+                document.getElementById('view-q-discount-amt').textContent = `-$${q.discount_amount.toFixed(2)}`;
+                document.getElementById('view-q-gst-amt').textContent = `+$${q.gst_amount.toFixed(2)}`;
+                document.getElementById('view-q-grand-total').textContent = `$${q.grand_total.toFixed(2)}`;
+                
+                const list = document.getElementById('view-items-body');
+                list.innerHTML = q.items.map(item => `
+                    <tr>
+                        <td><strong>${escapeHtml(item.product_name)}</strong></td>
+                        <td><code>${escapeHtml(item.product_code)}</code></td>
+                        <td>${item.quantity}</td>
+                        <td>$${item.price.toFixed(2)}</td>
+                        <td class="text-danger">-$${item.discount.toFixed(2)}</td>
+                        <td>+$${item.gst.toFixed(2)}</td>
+                        <td class="fw-semibold">$${item.total.toFixed(2)}</td>
+                    </tr>
+                `).join('');
+                
+                const modal = new bootstrap.Modal(document.getElementById('viewQuotationModal'));
+                modal.show();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    // Actions triggers
+    async function approveQuotation(id) {
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`/api/orders/quotations/${id}/approve`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) loadQuotations();
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    async function rejectQuotation(id) {
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`/api/orders/quotations/${id}/reject`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) loadQuotations();
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    async function convertToOrder(id) {
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`/api/orders/quotations/${id}/convert`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                window.location.href = '/orders';
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Conversion failed');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    
+    function printQuotation(id) {
+        const token = localStorage.getItem('access_token');
+        window.open(`/api/orders/quotations/${id}/pdf?token=${token}`, '_blank');
+    }
+    
+    // Start Load
+    loadQuotations();
+</script>
+{% endblock %}

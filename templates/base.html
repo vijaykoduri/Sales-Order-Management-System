@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SalesERP{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- App Layout Container -->
+    <div class="erp-container">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="erp-sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <i class="bi bi-rocket-takeoff-fill brand-icon"></i>
+                <span class="brand-text">Sales<span>ERP</span></span>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="/dashboard" id="nav-dashboard" class="menu-item">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/customers" id="nav-customers" class="menu-item">
+                    <i class="bi bi-people-fill"></i>
+                    <span>Customers</span>
+                </a>
+                <a href="/products" id="nav-products" class="menu-item">
+                    <i class="bi bi-box-seam-fill"></i>
+                    <span>Products</span>
+                </a>
+                <a href="/categories" id="nav-categories" class="menu-item">
+                    <i class="bi bi-tags-fill"></i>
+                    <span>Categories</span>
+                </a>
+                <a href="/suppliers" id="nav-suppliers" class="menu-item">
+                    <i class="bi bi-truck-flatbed"></i>
+                    <span>Suppliers</span>
+                </a>
+                <a href="/quotations" id="nav-quotations" class="menu-item">
+                    <i class="bi bi-receipt-cutoff"></i>
+                    <span>Quotations</span>
+                </a>
+                <a href="/orders" id="nav-orders" class="menu-item">
+                    <i class="bi bi-cart-check-fill"></i>
+                    <span>Sales Orders</span>
+                </a>
+                <a href="/invoices" id="nav-invoices" class="menu-item">
+                    <i class="bi bi-receipt"></i>
+                    <span>Invoices</span>
+                </a>
+                <a href="/payments" id="nav-payments" class="menu-item">
+                    <i class="bi bi-cash-stack"></i>
+                    <span>Payments</span>
+                </a>
+                <a href="/reports" id="nav-reports" class="menu-item">
+                    <i class="bi bi-bar-chart-line-fill"></i>
+                    <span>Reports</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile-sm">
+                    <div class="avatar">
+                        <i class="bi bi-person-circle"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="profile-name">Username</span>
+                        <span class="user-role badge" id="profile-role">Role</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main ERP Workspace -->
+        <div class="erp-workspace">
+            
+            <!-- Top Toolbar -->
+            <header class="erp-topbar">
+                <div class="topbar-left">
+                    <button class="btn btn-icon sidebar-toggle" id="sidebar-toggle" type="button">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h5 class="workspace-title" id="page-title">{% block page_title %}Dashboard{% endblock %}</h5>
+                </div>
+                
+                <div class="topbar-right">
+                    <!-- Notifications Dropdown -->
+                    <div class="dropdown notifications-dropdown">
+                        <button class="btn btn-icon position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="notif-bell">
+                            <i class="bi bi-bell-fill"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notif-badge">
+                                0
+                            </span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end p-0" aria-labelledby="notif-bell">
+                            <div class="dropdown-header d-flex justify-content-between align-items-center">
+                                <span>Notifications</span>
+                                <button class="btn btn-link btn-sm p-0" id="mark-all-read-btn">Mark all read</button>
+                            </div>
+                            <div class="notification-list" id="notif-list">
+                                <!-- Dynamic notifications -->
+                                <li class="text-center p-3 text-muted">No notifications</li>
+                            </div>
+                        </ul>
+                    </div>
+                    
+                    <!-- User Account Options -->
+                    <div class="dropdown">
+                        <button class="btn btn-profile dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="user-display-name">User</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item text-danger" id="logout-btn" type="button"><i class="bi bi-box-arrow-right me-2"></i>Logout</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Dynamic Sub-Content -->
+            <main class="workspace-content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Base Core Frontend Scripts -->
+    <script>
+        // Check authentication state
+        const token = localStorage.getItem('access_token');
+        const userJson = localStorage.getItem('user');
+        
+        if (!token || !userJson) {
+            if (window.location.pathname !== '/') {
+                window.location.href = '/';
+            }
+        } else {
+            const user = JSON.parse(userJson);
+            document.getElementById('profile-name').textContent = user.username;
+            document.getElementById('profile-role').textContent = user.role;
+            document.getElementById('user-display-name').textContent = user.username;
+            
+            // Adjust badge role style
+            const roleBadge = document.getElementById('profile-role');
+            if (user.role === 'Admin') {
+                roleBadge.classList.add('bg-danger');
+                document.body.classList.add('admin-theme');
+            } else if (user.role === 'Sales Manager') {
+                roleBadge.classList.add('bg-warning', 'text-dark');
+            } else {
+                roleBadge.classList.add('bg-primary');
+            }
+            
+            // Filter Sidebar Menu based on role
+            filterSidebarMenu(user.role);
+        }
+        
+        function filterSidebarMenu(role) {
+            const navCustomers = document.getElementById('nav-customers');
+            const navProducts = document.getElementById('nav-products');
+            const navCategories = document.getElementById('nav-categories');
+            const navSuppliers = document.getElementById('nav-suppliers');
+            const navQuotations = document.getElementById('nav-quotations');
+            const navOrders = document.getElementById('nav-orders');
+            const navInvoices = document.getElementById('nav-invoices');
+            const navPayments = document.getElementById('nav-payments');
+            const navReports = document.getElementById('nav-reports');
+
+            if (role === 'Admin') {
+                // System Admin: Only sees Dashboard, Products, Categories, Suppliers, and Reports
+                if (navCustomers) navCustomers.remove();
+                if (navQuotations) navQuotations.remove();
+                if (navOrders) navOrders.remove();
+                if (navInvoices) navInvoices.remove();
+                if (navPayments) navPayments.remove();
+            } else if (role === 'Employee') {
+                // Employee: Only sees Dashboard, Customers, Quotations, Sales Orders
+                if (navProducts) navProducts.remove();
+                if (navCategories) navCategories.remove();
+                if (navSuppliers) navSuppliers.remove();
+                if (navInvoices) navInvoices.remove();
+                if (navPayments) navPayments.remove();
+                if (navReports) navReports.remove();
+            } else if (role === 'Sales Manager') {
+                // Sales Manager sees everything (no removal)
+            }
+        }
+        
+        // Active Sidebar Highlights
+        const currentPath = window.location.pathname;
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => {
+            if (item.getAttribute('href') === currentPath) {
+                item.classList.add('active');
+            }
+        });
+        
+        // Sidebar Toggle
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+            });
+        }
+        
+        // Logout handler
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+            });
+        }
+        
+        // Load system notifications
+        async function loadNotifications() {
+            if (!token) return;
+            try {
+                const response = await fetch('/api/notifications', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    renderNotifications(data);
+                }
+            } catch (err) {
+                console.error("Failed to load notifications", err);
+            }
+        }
+        
+        function renderNotifications(notifs) {
+            const list = document.getElementById('notif-list');
+            const badge = document.getElementById('notif-badge');
+            
+            const unread = notifs.filter(n => !n.is_read);
+            
+            if (unread.length > 0) {
+                badge.textContent = unread.length;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+            
+            if (notifs.length === 0) {
+                list.innerHTML = '<li class="text-center p-3 text-muted">No notifications</li>';
+                return;
+            }
+            
+            list.innerHTML = notifs.map(n => `
+                <li class="notif-item ${n.is_read ? 'read' : 'unread'}" onclick="markNotifRead(${n.id})">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="notif-icon-badge ${getNotifClass(n.type)}">${n.type}</span>
+                        <small class="text-muted">${formatDate(n.created_at)}</small>
+                    </div>
+                    <div class="notif-msg text-wrap mt-1">${escapeHtml(n.message)}</div>
+                </li>
+            `).join('');
+        }
+        
+        function getNotifClass(type) {
+            switch(type) {
+                case 'Stock': return 'bg-danger-subtle text-danger';
+                case 'Order': return 'bg-primary-subtle text-primary';
+                case 'Payment': return 'bg-success-subtle text-success';
+                default: return 'bg-secondary-subtle text-secondary';
+            }
+        }
+        
+        async function markNotifRead(id) {
+            try {
+                await fetch(`/api/notifications/${id}/read`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadNotifications();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        const markAllReadBtn = document.getElementById('mark-all-read-btn');
+        if (markAllReadBtn) {
+            markAllReadBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    await fetch('/api/notifications/read-all', {
+                        method: 'PUT',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    loadNotifications();
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+        }
+        
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+        
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+        
+        // Initial execution
+        if (token) {
+            loadNotifications();
+            // Poll every 30 seconds for live notifications
+            setInterval(loadNotifications, 30000);
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
